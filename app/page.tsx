@@ -54,23 +54,23 @@ export default function ChatPage() {
           if (data.memory && Array.isArray(data.memory)) {
             setMemoryPoints(data.memory);
           } else {
-            // Set default "Your First API Call" memory when changing tabs with no memory
+            // Set default memory value but don't show it
             setMemoryPoints(["Your First API Call"]);
-            setShowMemory(true);
+            // Don't set showMemory to true
           }
         } else {
           console.error('Expected array from chat history API, got:', data);
           setMessages([]);
           // Set default memory when no messages are found
           setMemoryPoints(["Your First API Call"]);
-          setShowMemory(true);
+          // Don't set showMemory to true
         }
       } catch (error) {
         console.error('Failed to load chat history:', error);
         setMessages([]);
         // Set default memory when error occurs
         setMemoryPoints(["Your First API Call"]);
-        setShowMemory(true);
+        // Don't set showMemory to true
       }
     };
     loadHistory();
@@ -158,33 +158,25 @@ export default function ChatPage() {
     setTabs([...tabs, newTabId]);
     setActiveTab(newTabId);
     setMessages([]);
-    // Set "Your First API Call" memory when creating a new tab
+    // Set default memory value but don't show it
     setMemoryPoints(["Your First API Call"]);
-    setShowMemory(true);
+    // Don't set showMemory to true
   };
 
   const openNewChatWindow = () => {
     window.open('/', '_blank');
   };
 
+  // This function is kept but will never actually show memory
   const toggleMemory = () => {
-    setShowMemory(!showMemory);
+    // No-op: we never want to show memory
   };
 
   return (
     <div className="flex flex-col h-screen max-w-4xl mx-auto px-2 sm:px-4 relative">
       <header className="flex justify-between items-center py-4 px-2">
-        <h1 className="text-xl sm:text-2xl font-bold text-pink-600">DeepSeek Chat</h1>
+        <h1 className="text-xl sm:text-2xl font-bold text-pink-600">DeepSeek Chat <span className="text-sm">💕</span></h1>
         <div className="flex gap-1 sm:gap-2">
-          <Button 
-            variant={showMemory ? "default" : "outline"} 
-            size="icon" 
-            onClick={toggleMemory}
-            title="Show conversation memory"
-            className="w-8 h-8 sm:w-10 sm:h-10"
-          >
-            <BrainCircuit className="h-3 w-3 sm:h-4 sm:w-4" />
-          </Button>
           <Button 
             variant="outline" 
             size="icon" 
@@ -228,18 +220,6 @@ export default function ChatPage() {
         </div>
 
         <div className="flex-1 overflow-hidden flex flex-col">
-          {showMemory && memoryPoints.length > 0 && (
-            <div className="bg-pink-50 border border-pink-100 p-2 mb-2 rounded-md">
-              <h3 className="text-xs font-semibold text-pink-800 mb-1 flex items-center">
-                <BrainCircuit className="h-3 w-3 mr-1" /> Conversation Memory
-              </h3>
-              <ul className="text-xs text-gray-700 list-disc pl-4 space-y-1">
-                {memoryPoints.map((point, i) => (
-                  <li key={i}>{point}</li>
-                ))}
-              </ul>
-            </div>
-          )}
           
           {tabs.map((tab) => (
             <TabsContent key={tab} value={tab} className="m-0 flex-1 flex flex-col h-full">
@@ -314,7 +294,7 @@ export default function ChatPage() {
           value={input}
           onChange={(e) => setInput(e.target.value)}
           className="flex-1 p-2 border border-pink-200 rounded text-sm sm:text-base"
-          placeholder="Type your message..."
+          placeholder="Type your message... 💕"
           disabled={isLoading}
         />
         <Button 
@@ -322,7 +302,7 @@ export default function ChatPage() {
           disabled={isLoading}
           className="px-3 sm:px-4 py-2 bg-pink-500 hover:bg-pink-600 text-xs sm:text-sm whitespace-nowrap"
         >
-          {isLoading ? 'Sending...' : 'Send'}
+          {isLoading ? 'Sending...' : 'Send 💕'}
         </Button>
       </form>
     </div>

@@ -7,7 +7,7 @@ import { ScrollArea } from '@/components/ui/scroll-area';
 import { Avatar } from '@/components/ui/avatar';
 import { useRouter } from 'next/navigation';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Trash2, Plus } from 'lucide-react';
+import { Trash2, Plus, BrainCircuit } from 'lucide-react';
 import ReactMarkdown from 'react-markdown';
 
 interface ChatMessage {
@@ -22,6 +22,8 @@ export default function ChatPage() {
   const [isTyping, setIsTyping] = useState(false);
   const [activeTab, setActiveTab] = useState('chat1');
   const [tabs, setTabs] = useState(['chat1']);
+  const [memoryPoints, setMemoryPoints] = useState<string[]>([]);
+  const [showMemory, setShowMemory] = useState(false);
   const router = useRouter();
   const inputRef = useRef<HTMLInputElement>(null);
 
@@ -44,11 +46,14 @@ export default function ChatPage() {
     // Load chat history
     const loadHistory = async () => {
       try {
-        const response = await fetch('/api/chat/history');
+        const response = await fetch(`/api/chat/history?chatId=${activeTab}`);
         const data = await response.json();
         // Ensure data is an array before setting messages
-        if (Array.isArray(data)) {
-          setMessages(data);
+        if (data.messages && Array.isArray(data.messages)) {
+          setMessages(data.messages);
+          if (data.memory && Array.isArray(data.memory)) {
+            setMemoryPoints(data.memory);
+          }
         } else {
           console.error('Expected array from chat history API, got:', data);
           setMessages([]);
@@ -59,7 +64,7 @@ export default function ChatPage() {
       }
     };
     loadHistory();
-  }, [router]);
+  }, [router, activeTab]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -81,6 +86,7 @@ export default function ChatPage() {
         },
         body: JSON.stringify({
           messages: newMessages,
+          chatId: activeTab
         }),
       });
 
@@ -88,6 +94,11 @@ export default function ChatPage() {
       
       const data = await response.json();
       setMessages([...newMessages, { content: data.message, role: 'assistant' }]);
+      
+      // Update memory points if available
+      if (data.memory && Array.isArray(data.memory)) {
+        setMemoryPoints(data.memory);
+      }
     } catch (error) {
       console.error('Chat error:', error);
       alert('Failed to send message');
@@ -120,6 +131,7 @@ export default function ChatPage() {
         
         if (response.ok) {
           setMessages([]);
+          setMemoryPoints([]);
         } else {
           console.error('Failed to clear chat');
         }
@@ -136,10 +148,15 @@ export default function ChatPage() {
     setTabs([...tabs, newTabId]);
     setActiveTab(newTabId);
     setMessages([]);
+    setMemoryPoints([]);
   };
 
   const openNewChatWindow = () => {
     window.open('/', '_blank');
+  };
+
+  const toggleMemory = () => {
+    setShowMemory(!showMemory);
   };
 
   return (
@@ -147,6 +164,15 @@ export default function ChatPage() {
       <header className="flex justify-between items-center py-4 px-2">
         <h1 className="text-xl sm:text-2xl font-bold text-pink-600">DeepSeek Chat</h1>
         <div className="flex gap-1 sm:gap-2">
+          <Button 
+            variant={showMemory ? "default" : "outline"} 
+            size="icon" 
+            onClick={toggleMemory}
+            title="Show conversation memory"
+            className="w-8 h-8 sm:w-10 sm:h-10"
+          >
+            <BrainCircuit className="h-3 w-3 sm:h-4 sm:w-4" />
+          </Button>
           <Button 
             variant="outline" 
             size="icon" 
@@ -190,6 +216,19 @@ export default function ChatPage() {
         </div>
 
         <div className="flex-1 overflow-hidden flex flex-col">
+          {showMemory && memoryPoints.length > 0 && (
+            <div className="bg-pink-50 border border-pink-100 p-2 mb-2 rounded-md">
+              <h3 className="text-xs font-semibold text-pink-800 mb-1 flex items-center">
+                <BrainCircuit className="h-3 w-3 mr-1" /> Conversation Memory
+              </h3>
+              <ul className="text-xs text-gray-700 list-disc pl-4 space-y-1">
+                {memoryPoints.map((point, i) => (
+                  <li key={i}>{point}</li>
+                ))}
+              </ul>
+            </div>
+          )}
+          
           {tabs.map((tab) => (
             <TabsContent key={tab} value={tab} className="m-0 flex-1 flex flex-col h-full">
               <Card className="flex-1 border border-pink-200 overflow-hidden flex flex-col mb-16 sm:mb-20">

@@ -1,5 +1,5 @@
 'use client';
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
@@ -23,6 +23,7 @@ export default function ChatPage() {
   const [activeTab, setActiveTab] = useState('chat1');
   const [tabs, setTabs] = useState(['chat1']);
   const router = useRouter();
+  const inputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
     // Check if user is logged in
@@ -93,6 +94,10 @@ export default function ChatPage() {
     } finally {
       setIsTyping(false);
       setIsLoading(false);
+      // Refocus the input to prevent keyboard from hiding on mobile
+      if (inputRef.current) {
+        inputRef.current.focus();
+      }
     }
   };
 
@@ -191,7 +196,7 @@ export default function ChatPage() {
                 <ScrollArea className="flex-1 p-2 sm:p-4">
                   {!Array.isArray(messages) || messages.length === 0 ? (
                     <div className="h-full flex items-center justify-center text-gray-500">
-                      <p className="text-center text-sm sm:text-base">
+                      <p className="text-center text-base sm:text-lg">
                         Hi there! I'm your AI companion. Start a conversation!<br/>
                         I'm here to chat with you. 💕
                       </p>
@@ -205,7 +210,7 @@ export default function ChatPage() {
                         >
                           {msg.role === 'assistant' && (
                             <Avatar className="h-6 w-6 sm:h-8 sm:w-8 bg-pink-500">
-                              <span className="text-[10px] sm:text-xs font-bold">AI</span>
+                               <span className="text-[10px] sm:text-xs font-bold">AI</span>
                             </Avatar>
                           )}
                           <div 
@@ -215,13 +220,13 @@ export default function ChatPage() {
                                 : 'bg-pink-100 text-gray-800 rounded-tl-none'
                             }`}
                           >
-                            <div className="prose-sm max-w-none break-words markdown-content text-xs sm:text-sm">
+                            <div className="prose-sm max-w-none break-words markdown-content text-sm sm:text-base">
                               <ReactMarkdown>{msg.content}</ReactMarkdown>
                             </div>
                           </div>
                           {msg.role === 'user' && (
                             <Avatar className="h-6 w-6 sm:h-8 sm:w-8 bg-gray-700">
-                              <span className="text-[10px] sm:text-xs font-bold">You</span>
+                               <span className="text-[10px] sm:text-xs font-bold">You</span>
                             </Avatar>
                           )}
                         </div>
@@ -231,7 +236,7 @@ export default function ChatPage() {
                       {isTyping && (
                         <div className="flex items-start gap-2 sm:gap-3 justify-start">
                           <Avatar className="h-6 w-6 sm:h-8 sm:w-8 bg-pink-500">
-                            <span className="text-[10px] sm:text-xs font-bold">AI</span>
+                             <span className="text-[10px] sm:text-xs font-bold">AI</span>
                           </Avatar>
                           <div className="bg-pink-100 p-2 sm:p-3 rounded-lg rounded-tl-none">
                             <div className="flex space-x-1">
@@ -253,6 +258,7 @@ export default function ChatPage() {
       
       <form onSubmit={handleSubmit} className="fixed bottom-0 left-0 right-0 flex gap-2 bg-white p-2 sm:p-4 border-t border-gray-200 max-w-4xl mx-auto">
         <Input
+          ref={inputRef}
           type="text"
           value={input}
           onChange={(e) => setInput(e.target.value)}

@@ -3,12 +3,6 @@ import dbConnect from '@/lib/db';
 import Message from '@/models/Message';
 import ConversationMemory from '@/models/ConversationMemory';
 import { getServerSession } from '../../../lib/auth';
-import OpenAI from 'openai';
-
-const openai = new OpenAI({
-  baseURL: 'https://api.deepseek.com',
-  apiKey: process.env.DEEPSEEK_API
-});
 
 export async function POST(request: Request) {
   await dbConnect();
@@ -83,14 +77,23 @@ export async function POST(request: Request) {
       `
     });
 
-    // Call DeepSeek API using OpenAI SDK format
-    const completion = await openai.chat.completions.create({
-      model: 'deepseek-chat',
-      messages: apiMessages,
-      temperature: 1,
+    // Call DeepSeek API directly using fetch
+    const completion = await fetch('https://api.deepseek.com/chat/completions', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${process.env.DEEPSEEK_API}`
+      },
+      body: JSON.stringify({
+        model: 'deepseek-chat',
+        messages: apiMessages,
+        temperature: 1,
+        stream: false
+      })
     });
 
-    const assistantResponse = completion.choices[0].message.content;
+    const completionData = await completion.json();
+    const assistantResponse = completionData.choices[0].message.content;
 
     // Save assistant response
     await Message.create({
@@ -119,20 +122,29 @@ export async function POST(request: Request) {
           }
         ];
         
-        const memoryCompletion = await openai.chat.completions.create({
-          model: 'deepseek-chat',
-          messages: extractionPrompt,
-          temperature: 0.3,
+        const memoryResponse = await fetch('https://api.deepseek.com/chat/completions', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${process.env.DEEPSEEK_API}`
+          },
+          body: JSON.stringify({
+            model: 'deepseek-chat',
+            messages: extractionPrompt,
+            temperature: 0.3,
+            stream: false
+          })
         });
         
-        const keyPointsResponse = memoryCompletion.choices[0].message.content || '';
+        const memoryData = await memoryResponse.json();
+        const keyPointsResponse = memoryData.choices[0].message.content || '';
         
         // Parse bullet points
         const keyPoints = keyPointsResponse
           .split('\n')
-          .filter(line => line.trim().startsWith('•') || line.trim().startsWith('-') || line.trim().startsWith('*'))
-          .map(point => point.replace(/^[•\-*]\s*/, '').trim())
-          .filter(point => point.length > 0);
+          .filter((line: string) => line.trim().startsWith('•') || line.trim().startsWith('-') || line.trim().startsWith('*'))
+          .map((point: string) => point.replace(/^[•\-*]\s*/, '').trim())
+          .filter((point: string) => point.length > 0);
           
         // Update conversation memory
         if (keyPoints.length > 0) {
@@ -147,7 +159,7 @@ export async function POST(request: Request) {
           
           // Add new key points, remove duplicates
           const existingPoints = new Set(memory.keyPoints);
-          keyPoints.forEach(point => existingPoints.add(point));
+          keyPoints.forEach((point: string) => existingPoints.add(point));
           memory.keyPoints = Array.from(existingPoints);
           memory.lastUpdated = new Date();
           

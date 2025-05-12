@@ -53,14 +53,24 @@ export default function ChatPage() {
           setMessages(data.messages);
           if (data.memory && Array.isArray(data.memory)) {
             setMemoryPoints(data.memory);
+          } else {
+            // Set default "Your First API Call" memory when changing tabs with no memory
+            setMemoryPoints(["Your First API Call"]);
+            setShowMemory(true);
           }
         } else {
           console.error('Expected array from chat history API, got:', data);
           setMessages([]);
+          // Set default memory when no messages are found
+          setMemoryPoints(["Your First API Call"]);
+          setShowMemory(true);
         }
       } catch (error) {
         console.error('Failed to load chat history:', error);
         setMessages([]);
+        // Set default memory when error occurs
+        setMemoryPoints(["Your First API Call"]);
+        setShowMemory(true);
       }
     };
     loadHistory();
@@ -148,7 +158,9 @@ export default function ChatPage() {
     setTabs([...tabs, newTabId]);
     setActiveTab(newTabId);
     setMessages([]);
-    setMemoryPoints([]);
+    // Set "Your First API Call" memory when creating a new tab
+    setMemoryPoints(["Your First API Call"]);
+    setShowMemory(true);
   };
 
   const openNewChatWindow = () => {

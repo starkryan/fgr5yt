@@ -43,6 +43,9 @@ export default function ChatPage() {
     
     checkAuth();
     
+    // Reset messages when changing tabs
+    setMessages([]);
+    
     // Load chat history
     const loadHistory = async () => {
       try {
@@ -54,23 +57,20 @@ export default function ChatPage() {
           if (data.memory && Array.isArray(data.memory)) {
             setMemoryPoints(data.memory);
           } else {
-            // Set default memory value but don't show it
-            setMemoryPoints(["Your First API Call"]);
-            // Don't set showMemory to true
+            // Set empty memory for new tabs
+            setMemoryPoints([]);
           }
         } else {
           console.error('Expected array from chat history API, got:', data);
           setMessages([]);
-          // Set default memory when no messages are found
-          setMemoryPoints(["Your First API Call"]);
-          // Don't set showMemory to true
+          // Set empty memory for new conversations
+          setMemoryPoints([]);
         }
       } catch (error) {
         console.error('Failed to load chat history:', error);
         setMessages([]);
-        // Set default memory when error occurs
-        setMemoryPoints(["Your First API Call"]);
-        // Don't set showMemory to true
+        // Set empty memory when error occurs
+        setMemoryPoints([]);
       }
     };
     loadHistory();
@@ -96,7 +96,7 @@ export default function ChatPage() {
         },
         body: JSON.stringify({
           messages: newMessages,
-          chatId: activeTab
+          chatId: activeTab // Pass the active tab ID to ensure chat history is tab-specific
         }),
       });
 
@@ -137,6 +137,12 @@ export default function ChatPage() {
         setIsLoading(true);
         const response = await fetch('/api/chat/clear', {
           method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            chatId: activeTab
+          }),
         });
         
         if (response.ok) {
@@ -158,9 +164,8 @@ export default function ChatPage() {
     setTabs([...tabs, newTabId]);
     setActiveTab(newTabId);
     setMessages([]);
-    // Set default memory value but don't show it
-    setMemoryPoints(["Your First API Call"]);
-    // Don't set showMemory to true
+    // Reset memory completely for new chats
+    setMemoryPoints([]);
   };
 
   const openNewChatWindow = () => {
@@ -223,7 +228,7 @@ export default function ChatPage() {
           
           {tabs.map((tab) => (
             <TabsContent key={tab} value={tab} className="m-0 flex-1 flex flex-col h-full">
-              <Card className="flex-1 border border-pink-200 overflow-hidden flex flex-col mb-16 sm:mb-20">
+              <Card className="flex-1 border border-pink-200 overflow-hidden flex flex-col mb-16 sm:mb-20 rounded-2xl shadow-md">
                 <ScrollArea className="flex-1 p-2 sm:p-4">
                   {!Array.isArray(messages) || messages.length === 0 ? (
                     <div className="h-full flex items-center justify-center text-gray-500">
@@ -240,15 +245,15 @@ export default function ChatPage() {
                           className={`flex items-start gap-2 sm:gap-3 ${msg.role === 'user' ? 'justify-end' : 'justify-start'}`}
                         >
                           {msg.role === 'assistant' && (
-                            <Avatar className="h-6 w-6 sm:h-8 sm:w-8 bg-pink-500">
+                            <Avatar className="h-6 w-6 sm:h-8 sm:w-8 bg-pink-500 shadow-sm">
                                <span className="text-[10px] sm:text-xs font-bold">AI</span>
                             </Avatar>
                           )}
                           <div 
-                            className={`p-2 sm:p-3 rounded-lg max-w-[85%] sm:max-w-[80%] ${
+                            className={`p-2 sm:p-3 rounded-2xl max-w-[85%] sm:max-w-[80%] ${
                               msg.role === 'user' 
-                                ? 'bg-blue-600 text-white rounded-tr-none' 
-                                : 'bg-pink-100 text-gray-800 rounded-tl-none'
+                                ? 'bg-blue-600 text-white rounded-tr-none shadow-sm' 
+                                : 'bg-pink-100 text-gray-800 rounded-tl-none shadow-sm'
                             }`}
                           >
                             <div className="prose-sm max-w-none break-words markdown-content text-sm sm:text-base">
@@ -256,7 +261,7 @@ export default function ChatPage() {
                             </div>
                           </div>
                           {msg.role === 'user' && (
-                            <Avatar className="h-6 w-6 sm:h-8 sm:w-8 bg-gray-700">
+                            <Avatar className="h-6 w-6 sm:h-8 sm:w-8 bg-gray-700 shadow-sm">
                                <span className="text-[10px] sm:text-xs font-bold">You</span>
                             </Avatar>
                           )}
@@ -266,10 +271,10 @@ export default function ChatPage() {
                       {/* Typing indicator */}
                       {isTyping && (
                         <div className="flex items-start gap-2 sm:gap-3 justify-start">
-                          <Avatar className="h-6 w-6 sm:h-8 sm:w-8 bg-pink-500">
+                          <Avatar className="h-6 w-6 sm:h-8 sm:w-8 bg-pink-500 shadow-sm">
                              <span className="text-[10px] sm:text-xs font-bold">AI</span>
                           </Avatar>
-                          <div className="bg-pink-100 p-2 sm:p-3 rounded-lg rounded-tl-none">
+                          <div className="bg-pink-100 p-2 sm:p-3 rounded-2xl rounded-tl-none shadow-sm">
                             <div className="flex space-x-1">
                               <div className="h-1.5 w-1.5 sm:h-2 sm:w-2 bg-pink-500 rounded-full animate-bounce" style={{ animationDelay: '0ms' }}></div>
                               <div className="h-1.5 w-1.5 sm:h-2 sm:w-2 bg-pink-500 rounded-full animate-bounce" style={{ animationDelay: '150ms' }}></div>
@@ -293,14 +298,14 @@ export default function ChatPage() {
           type="text"
           value={input}
           onChange={(e) => setInput(e.target.value)}
-          className="flex-1 p-2 border border-pink-200 rounded text-sm sm:text-base"
+          className="flex-1 p-2 border border-pink-200 rounded-full text-sm sm:text-base shadow-sm focus:ring-2 focus:ring-pink-300"
           placeholder="Type your message... 💕"
           disabled={isLoading}
         />
         <Button 
           type="submit"
           disabled={isLoading}
-          className="px-3 sm:px-4 py-2 bg-pink-500 hover:bg-pink-600 text-xs sm:text-sm whitespace-nowrap"
+          className="px-4 sm:px-6 py-2 bg-pink-500 hover:bg-pink-600 text-xs sm:text-sm whitespace-nowrap rounded-full shadow-sm transition-all"
         >
           {isLoading ? 'Sending...' : 'Send 💕'}
         </Button>

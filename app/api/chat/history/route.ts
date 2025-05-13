@@ -19,8 +19,8 @@ export async function GET(request: Request) {
     const url = new URL(request.url);
     const chatId = url.searchParams.get('chatId') || 'default';
     
-    // Get messages for the current user only
-    const messages = await Message.find({ userId })
+    // Get messages for the current user AND specific chatId only
+    const messages = await Message.find({ userId, chatId })
       .sort({ createdAt: 1 })
       .limit(50);
     
@@ -28,7 +28,7 @@ export async function GET(request: Request) {
     const memory = await ConversationMemory.findOne({ userId, chatId });
       
     return NextResponse.json({
-      messages,
+      messages: messages || [],
       memory: memory?.keyPoints || []
     });
   } catch (error) {

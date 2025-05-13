@@ -19,15 +19,16 @@ export async function POST(request: Request) {
   const userId = session.user.id;
 
   try {
-    // Save user message
+    // Save user message with chatId
     await Message.create({
       content: userMessage,
       role: 'user',
-      userId
+      userId,
+      chatId
     });
 
-    // Get previous messages for context (limited to last 20 for memory)
-    const previousMessages = await Message.find({ userId })
+    // Get previous messages for context, filtered by chatId
+    const previousMessages = await Message.find({ userId, chatId })
       .sort({ createdAt: -1 })
       .limit(20)
       .sort({ createdAt: 1 });
@@ -93,11 +94,12 @@ export async function POST(request: Request) {
     const completionData = await completion.json();
     const assistantResponse = completionData.choices[0].message.content;
 
-    // Save assistant response
+    // Save assistant response with chatId
     await Message.create({
       content: assistantResponse,
       role: 'assistant',
-      userId
+      userId,
+      chatId
     });
 
     // Every 5 messages, extract key points from the conversation

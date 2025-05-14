@@ -101,6 +101,9 @@ export async function POST(request: Request) {
       - Personality will adapt dynamically to user's chat style
       - Use appropriate emojis based on learned frequency
       - Match emotional tone to conversation history
+
+      LANGUAGE STYLE:
+      - Use Hinglish Language: eg. (mai thik hu tum btao)
       `
     });
 
@@ -261,9 +264,27 @@ export async function POST(request: Request) {
       }
     }
 
+    // Calculate typing delay based on response length (avg 50ms per word)
+    const wordCount = assistantResponse.split(/\s+/).length;
+    const typingDelay = Math.min(3000, wordCount * 50);
+    
+    // Analyze mood from response content
+    const mood = assistantResponse.match(/\!|\.\.\.|\?/) 
+      ? assistantResponse.includes('?') ? 'curious' 
+        : assistantResponse.includes('...') ? 'thoughtful' 
+        : 'excited'
+      : 'neutral';
+
     return NextResponse.json({ 
       message: assistantResponse,
-      memory: memory?.keyPoints || []
+      memory: memory?.keyPoints || [],
+      metadata: {
+        typingDelay,
+        mood,
+        typingStyle: memory?.personalityTraits?.typingStyle || 'balanced',
+        isTyping: true,
+        lastUpdated: new Date().toISOString()
+      }
     });
   } catch (error) {
     console.error('Chat error:', error);

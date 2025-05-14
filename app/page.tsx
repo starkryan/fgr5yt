@@ -103,15 +103,28 @@ export default function ChatPage() {
       if (!response.ok) throw new Error('API request failed');
       
       const data = await response.json();
-      setMessages([...newMessages, { content: data.message, role: 'assistant' }]);
       
-      // Update memory points if available
-      if (data.memory && Array.isArray(data.memory)) {
-        setMemoryPoints(data.memory);
+      if (data.error) {
+        // If there's an error in the response, show the error message or a fallback
+        setMessages([...newMessages, { 
+          content: data.message || "I'm sorry, I couldn't process that request. Please try again or modify your message.", 
+          role: 'assistant' 
+        }]);
+      } else {
+        setMessages([...newMessages, { content: data.message, role: 'assistant' }]);
+        
+        // Update memory points if available
+        if (data.memory && Array.isArray(data.memory)) {
+          setMemoryPoints(data.memory);
+        }
       }
     } catch (error) {
       console.error('Chat error:', error);
-      alert('Failed to send message');
+      // Keep the user's message in the conversation and add an error message
+      setMessages([...newMessages, { 
+        content: "I'm sorry, I couldn't process that request. Please try again or modify your message.", 
+        role: 'assistant' 
+      }]);
     } finally {
       setIsTyping(false);
       setIsLoading(false);

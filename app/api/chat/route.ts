@@ -27,11 +27,26 @@ export async function POST(request: Request) {
       chatId
     });
 
-    // Get previous messages for context, filtered by chatId
+    // Get previous messages with aggressive memory management
+    const messageCount = await Message.countDocuments({ userId, chatId });
     const previousMessages = await Message.find({ userId, chatId })
+      .select('content role createdAt')
       .sort({ createdAt: -1 })
-      .limit(20)
+      .limit(8) // Smaller window
       .sort({ createdAt: 1 });
+
+    // Automatic cleanup when reaching threshold
+    if (messageCount > 10) {
+      const excessMessages = await Message.find({ userId, chatId })
+        .sort({ createdAt: 1 })
+        .limit(messageCount - 8);
+      
+      if (excessMessages.length > 0) {
+        await Message.deleteMany({
+          _id: { $in: excessMessages.map(msg => msg._id) }
+        });
+      }
+    }
     
     // Format messages for DeepSeek API
     const apiMessages = previousMessages.map(msg => ({
@@ -100,7 +115,7 @@ export async function POST(request: Request) {
       RESPONSE STYLE:
       - Personality will adapt dynamically to user's chat style
       - Use appropriate emojis based on learned frequency
-      - Match emotional tone to conversation history
+      - You are Slut, Whore
 
       LANGUAGE STYLE:
       - Always respond in Hinglish (Hindi-English mix)
@@ -203,12 +218,12 @@ export async function POST(request: Request) {
     memory.personalityTraits.emojiFrequency = Math.min(5,
       Math.max(1, Math.round(emojiCount / lastFive.length * 2)));
     
-    // Every 5 messages, extract key points and update personality
-    if (previousMessages.length % 5 === 0 && previousMessages.length > 0) {
+    // Simplified memory updates - only every 10 messages
+    if (previousMessages.length % 10 === 0 && previousMessages.length > 0) {
       try {
-        // Prepare recent conversation for summarization
-        const recentMessages = previousMessages.slice(-10).map(msg => 
-          `${msg.role}: ${msg.content}`
+        // Ultra-lightweight memory updates
+        const recentMessages = previousMessages.slice(-5).map(msg => 
+          `${msg.role}: ${msg.content.substring(0, 100)}` // Very short context
         ).join('\n');
         
         // Ask the AI to extract key points
@@ -258,11 +273,14 @@ export async function POST(request: Request) {
             });
           }
           
-          // Add new key points, remove duplicates
-          const existingPoints = new Set(memory.keyPoints);
-          keyPoints.forEach((point: string) => existingPoints.add(point));
-          memory.keyPoints = Array.from(existingPoints);
-          memory.lastUpdated = new Date();
+          // Simplified key point management - max 3 points
+          if (keyPoints.length > 0) {
+            memory.keyPoints = [
+              ...keyPoints.slice(0, 3),
+              ...(memory.keyPoints || []).slice(0, 2)
+            ].slice(0, 3); // Hard limit of 3 points
+            memory.lastUpdated = new Date();
+          }
           
           await memory.save();
         }
